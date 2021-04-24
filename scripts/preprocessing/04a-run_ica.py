@@ -100,15 +100,28 @@ def make_epochs_for_ica(raw, subject, session):
                             root=config.deriv_root,
                             check=False)
     epochs = mne.read_epochs(epochs_fname)
-    selection = epochs.selection
+
+    # Should be factorized as it is the same as in 03-make_epochs.py:64,
+    # but not obvious how
+    if config.no_epoching:
+        stop = raw.times[-1] - config.fixed_length_epochs_duration
+        events = mne.make_fixed_length_events(
+            raw, id=3000, start=0,
+            duration=config.fixed_length_epochs_duration,
+            overlap=config.fixed_length_epochs_overlap,
+            stop=stop)
+        event_id = dict(rest=3000)
+    else:
+        events, event_id = mne.events_from_annotations(raw)
 
     # Now, create new epochs, and only keep the ones we kept in step 3.
     # Because some events present in event_id may disappear entirely from the
     # data, we pass `on_missing='ignore'` to mne.Epochs. Also note that we do
     # not pass the `reject` parameter here.
 
-    events, event_id = mne.events_from_annotations(raw)
+    selection = epochs.selection
     events = events[selection]
+
     epochs_ica = mne.Epochs(raw, events=events, event_id=event_id,
                             tmin=epochs.tmin, tmax=epochs.tmax,
                             baseline=None,

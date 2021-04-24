@@ -579,12 +579,6 @@ with ICA, don't specify a value for the EOG and ECG channels, respectively
 
 Pass ``None`` to avoid automated epoch rejection based on amplitude.
 
-???+ note "Note"
-    These numbers tend to vary between subjects.. You might want to consider
-    using the autoreject method by Jas et al. 2018.
-    See https://autoreject.github.io
-
-
 ???+ example "Example"
     ```python
     reject = {'grad': 4000e-13, 'mag': 4e-12, 'eog': 150e-6}
@@ -760,6 +754,18 @@ The end of an epoch, relative to the respective event, in seconds.
     ```
 """
 
+fixed_length_epochs_duration: Optional[float] = 1
+"""
+Duration of epochs in seconds. Used if `no_epoching` was set, in order to
+perform ICA cleaning.
+"""
+
+fixed_length_epochs_overlap: Optional[float] = 0
+"""
+Overlap between epochs in seconds. Used if `no_epoching` was set, in order to
+perform ICA cleaning.
+"""
+
 baseline: Optional[Tuple[Optional[float], Optional[float]]] = (None, 0)
 """
 Specifies which time interval to use for baseline correction of epochs;
@@ -795,6 +801,11 @@ of contrasts.
                  ('visual/left', 'visual/right'),
                  ('auditory', 'visual')]
     ```
+"""
+
+no_epoching: bool = False
+"""
+Do not perform epoching on the data.
 """
 
 ###############################################################################
@@ -1389,6 +1400,12 @@ if bem_mri_images not in ('FLASH', 'T1', 'auto'):
     msg = (f'Unknown bem_mri_images: {bem_mri_images}. Valid values '
            f'are: "FLASH", "T1", and "auto".')
     raise ValueError(msg)
+
+if no_epoching:
+    epochs_tmin = 0
+
+if task == 'rest':
+    no_epoching = True
 
 
 ###############################################################################

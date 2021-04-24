@@ -16,7 +16,6 @@ import logging
 import mne
 from mne.parallel import parallel_func
 from mne_bids import BIDSPath
-
 import config
 from config import gen_log_message, on_error, failsafe_run
 
@@ -61,7 +60,22 @@ def run_epochs(subject, session=None):
     else:
         raw = mne.concatenate_raws(raw_list)
 
-    events, event_id = mne.events_from_annotations(raw)
+    # Compute events for rest tasks
+    if config.no_epoching:
+        stop = raw.times[-1] - config.fixed_length_epochs_duration
+        # duration = config.epochs_tmax - config.epochs_tmin
+        assert config.epochs_tmin == 0., "epochs_tmin must be 0 for rest"
+        assert config.fixed_length_epochs_overlap is not None, \
+            "epochs_overlap cannot be None for rest"
+        events = mne.make_fixed_length_events(
+            raw, id=3000, start=0,
+            duration=config.fixed_length_epochs_duration,
+            overlap=config.fixed_length_epochs_overlap,
+            stop=stop)
+        event_id = dict(rest=3000)
+    else:  # Events for task runs
+        events, event_id = mne.events_from_annotations(raw)
+
     if "eeg" in config.ch_types:
         projection = True if config.eeg_reference == 'average' else False
         raw.set_eeg_reference(config.eeg_reference, projection=projection)
@@ -88,14 +102,17 @@ def run_epochs(subject, session=None):
 
     # Epoch the data
     msg = (f'Creating epochs with duration: '
-           f'[{config.epochs_tmin}, {config.epochs_tmin}] sec')
+           f'[{config.epochs_tmin}, {config.epochs_tmax}] sec')
     logger.info(gen_log_message(message=msg, step=3, subject=subject,
                                 session=session))
+
+    reject = config.get_reject()
+
     epochs = mne.Epochs(raw, events=events, event_id=event_id,
                         tmin=config.epochs_tmin, tmax=config.epochs_tmax,
                         proj=True, baseline=None,
                         preload=False, decim=config.decim,
-                        reject=config.get_reject(),
+                        reject=reject,
                         reject_tmin=config.reject_tmin,
                         reject_tmax=config.reject_tmax,
                         metadata=metadata,

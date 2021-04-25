@@ -28,6 +28,7 @@ dependencies:
   - mkdocs-macros-plugin
   - coloredlogs
   - pip:
+    - autoreject  # move to conda-forge once https://github.com/conda-forge/staged-recipes/pull/14729 is merged
     - http://github.com/hoechenberger/openneuro-py/zipball/timeouts
     - https://api.github.com/repos/mne-tools/mne-python/zipball/main
     - https://api.github.com/repos/mne-tools/mne-bids/zipball/main

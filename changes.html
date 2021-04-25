@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.2">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="assets/stylesheets/main.6f955dcd.min.css">
+      <link rel="stylesheet" href="assets/stylesheets/main.e35208c4.min.css">
       
         
         <link rel="stylesheet" href="assets/stylesheets/palette.ef6f36e2.min.css">
@@ -370,6 +370,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#behavior-changes" class="md-nav__link">
+    Behavior changes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#bug-fixes" class="md-nav__link">
     Bug fixes
   </a>
@@ -594,32 +601,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="settings/preprocessing/stim_artifact.html" class="md-nav__link">
-        Stimulation artifact
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
     
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_4" type="checkbox" id="__nav_5_2_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_3" type="checkbox" id="__nav_5_2_3" >
       
-      <label class="md-nav__link" for="__nav_5_2_4">
-        Frequency filtering & resampling
+      <label class="md-nav__link" for="__nav_5_2_3">
+        Filtering & resampling
         <span class="md-nav__icon md-icon"></span>
       </label>
-      <nav class="md-nav" aria-label="Frequency filtering & resampling" data-md-level="3">
-        <label class="md-nav__title" for="__nav_5_2_4">
+      <nav class="md-nav" aria-label="Filtering & resampling" data-md-level="3">
+        <label class="md-nav__title" for="__nav_5_2_3">
           <span class="md-nav__icon md-icon"></span>
-          Frequency filtering & resampling
+          Filtering & resampling
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -669,9 +664,30 @@
   
   
   
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_5" type="checkbox" id="__nav_5_2_5" >
+      
+      <label class="md-nav__link" for="__nav_5_2_5">
+        Artifact removal
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Artifact removal" data-md-level="3">
+        <label class="md-nav__title" for="__nav_5_2_5">
+          <span class="md-nav__icon md-icon"></span>
+          Artifact removal
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
+  
     <li class="md-nav__item">
-      <a href="settings/preprocessing/artifacts.html" class="md-nav__link">
-        Amplitude-based artifact removal
+      <a href="settings/preprocessing/stim_artifact.html" class="md-nav__link">
+        Stimulation artifact
       </a>
     </li>
   
@@ -685,6 +701,24 @@
       <a href="settings/preprocessing/ssp_ica.html" class="md-nav__link">
         SSP & ICA
       </a>
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="settings/preprocessing/artifacts.html" class="md-nav__link">
+        Amplitude-based
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1016,6 +1050,13 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#behavior-changes" class="md-nav__link">
+    Behavior changes
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#bug-fixes" class="md-nav__link">
     Bug fixes
   </a>
@@ -1049,7 +1090,16 @@
                 <h2 id="changes-since-april-15-2021">Changes since April 15, 2021<a class="headerlink" href="#changes-since-april-15-2021" title="Permanent link">&para;</a></h2>
 <h3 id="new-features-enhancements">New features &amp; enhancements<a class="headerlink" href="#new-features-enhancements" title="Permanent link">&para;</a></h3>
 <ul>
-<li>...</li>
+<li>The new configuration option <a href="settings/preprocessing/ssp_ica.html#config.ica_reject"><code>ica_reject</code></a> allows to
+  exclude epochs from the ICA fit based on peak-to-peak amplitude.</li>
+</ul>
+<h3 id="behavior-changes">Behavior changes<a class="headerlink" href="#behavior-changes" title="Permanent link">&para;</a></h3>
+<ul>
+<li>Epochs rejection based on peak-to-peak amplitude, as controlled via the
+  <a href="settings/preprocessing/artifacts.html#config.reject"><code>reject</code></a> setting, will now take place <strong>after</strong> ICA or SSP.
+  In previous versions of the Pipeline, rejection was carried out before ICA
+  and SSP. The exclude epochs from ICA fitting, use the new
+  <a href="settings/preprocessing/ssp_ica.html#config.ica_reject"><code>ica_reject</code></a> setting.</li>
 </ul>
 <h3 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>

@@ -14,7 +14,7 @@
       
       
       <link rel="icon" href="../../assets/favicon.ico">
-      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.2">
+      <meta name="generator" content="mkdocs-1.1.2, mkdocs-material-7.1.3">
     
     
       
@@ -22,7 +22,7 @@
       
     
     
-      <link rel="stylesheet" href="../../assets/stylesheets/main.6f955dcd.min.css">
+      <link rel="stylesheet" href="../../assets/stylesheets/main.e35208c4.min.css">
       
         
         <link rel="stylesheet" href="../../assets/stylesheets/palette.ef6f36e2.min.css">
@@ -542,32 +542,20 @@
   
   
   
-    <li class="md-nav__item">
-      <a href="stim_artifact.html" class="md-nav__link">
-        Stimulation artifact
-      </a>
-    </li>
-  
-
-          
-            
-  
-  
-  
     
     <li class="md-nav__item md-nav__item--nested">
       
       
-        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_4" type="checkbox" id="__nav_5_2_4" >
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_3" type="checkbox" id="__nav_5_2_3" >
       
-      <label class="md-nav__link" for="__nav_5_2_4">
-        Frequency filtering & resampling
+      <label class="md-nav__link" for="__nav_5_2_3">
+        Filtering & resampling
         <span class="md-nav__icon md-icon"></span>
       </label>
-      <nav class="md-nav" aria-label="Frequency filtering & resampling" data-md-level="3">
-        <label class="md-nav__title" for="__nav_5_2_4">
+      <nav class="md-nav" aria-label="Filtering & resampling" data-md-level="3">
+        <label class="md-nav__title" for="__nav_5_2_3">
           <span class="md-nav__icon md-icon"></span>
-          Frequency filtering & resampling
+          Filtering & resampling
         </label>
         <ul class="md-nav__list" data-md-scrollfix>
           
@@ -616,10 +604,33 @@
             
   
   
+    
+  
+  
+    
+    <li class="md-nav__item md-nav__item--active md-nav__item--nested">
+      
+      
+        <input class="md-nav__toggle md-toggle" data-md-toggle="__nav_5_2_5" type="checkbox" id="__nav_5_2_5" checked>
+      
+      <label class="md-nav__link" for="__nav_5_2_5">
+        Artifact removal
+        <span class="md-nav__icon md-icon"></span>
+      </label>
+      <nav class="md-nav" aria-label="Artifact removal" data-md-level="3">
+        <label class="md-nav__title" for="__nav_5_2_5">
+          <span class="md-nav__icon md-icon"></span>
+          Artifact removal
+        </label>
+        <ul class="md-nav__list" data-md-scrollfix>
+          
+            
+  
+  
   
     <li class="md-nav__item">
-      <a href="artifacts.html" class="md-nav__link">
-        Amplitude-based artifact removal
+      <a href="stim_artifact.html" class="md-nav__link">
+        Stimulation artifact
       </a>
     </li>
   
@@ -668,6 +679,13 @@
         <li class="md-nav__item">
   <a href="#config.use_ica" class="md-nav__link">
     use_ica
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#config.ica_reject" class="md-nav__link">
+    ica_reject
   </a>
   
 </li>
@@ -725,6 +743,24 @@
   
 </nav>
       
+    </li>
+  
+
+          
+            
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="artifacts.html" class="md-nav__link">
+        Amplitude-based
+      </a>
+    </li>
+  
+
+          
+        </ul>
+      </nav>
     </li>
   
 
@@ -1055,6 +1091,13 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#config.ica_reject" class="md-nav__link">
+    ica_reject
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#config.ica_algorithm" class="md-nav__link">
     ica_algorithm
   </a>
@@ -1134,7 +1177,9 @@
 
     <div class="doc doc-contents first">
 
-      <p>Whether signal-space projection should be used or not.</p>
+      <p>Whether signal-space projection should be used or not. The BIDS Pipeline will
+try to recover EOG and ECG artifacts, and produce projection vectors that
+remove these signals from the data.</p>
     </div>
 
   </div>
@@ -1154,6 +1199,36 @@
     <div class="doc doc-contents first">
 
       <p>Whether independent component analysis should be used or not.</p>
+    </div>
+
+  </div>
+
+
+
+  <div class="doc doc-object doc-attribute">
+
+
+
+<h2 id="config.ica_reject" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">ica_reject</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]]</span></code>
+
+
+<a href="#config.ica_reject" class="headerlink" title="Permanent link">&para;</a></h2>
+
+    <div class="doc doc-contents first">
+
+      <p>Peak-to-peak amplitude limits to exclude epochs from ICA fitting.</p>
+<p>This allows you to remove strong transient artifacts, which could negatively
+affect ICA performance.</p>
+<p>The BIDS Pipeline will automatically try to detect EOG and ECG artifacts in
+your data, and remove them. For this to work properly, it is recommended
+to <strong>not</strong> specify rejection thresholds for EOG and ECG channels here –
+otherwise, ICA won't be able to "see" these artifacts.</p>
+<details class="example" open="open"><summary>Example</summary><div class="highlight"><pre><span></span><code><span class="n">ica_reject</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;grad&#39;</span><span class="p">:</span> <span class="mf">10e-10</span><span class="p">,</span> <span class="s1">&#39;mag&#39;</span><span class="p">:</span> <span class="mf">20e-12</span><span class="p">,</span> <span class="s1">&#39;eeg&#39;</span><span class="p">:</span> <span class="mf">400e-6</span><span class="p">}</span>
+<span class="n">ica_reject</span> <span class="o">=</span> <span class="p">{</span><span class="s1">&#39;grad&#39;</span><span class="p">:</span> <span class="mf">15e-10</span><span class="p">}</span>
+<span class="n">ica_reject</span> <span class="o">=</span> <span class="kc">None</span>
+</code></pre></div>
+</details>
     </div>
 
   </div>
@@ -1353,7 +1428,7 @@ false-alarm rate increases dramatically.</p>
   
     <nav class="md-footer__inner md-grid" aria-label="Footer">
       
-        <a href="artifacts.html" class="md-footer__link md-footer__link--prev" rel="prev">
+        <a href="stim_artifact.html" class="md-footer__link md-footer__link--prev" rel="prev">
           <div class="md-footer__button md-icon">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11h12z"/></svg>
           </div>
@@ -1362,19 +1437,19 @@ false-alarm rate increases dramatically.</p>
               <span class="md-footer__direction">
                 Previous
               </span>
-              Amplitude-based artifact removal
+              Stimulation artifact
             </div>
           </div>
         </a>
       
       
-        <a href="../sensor/statistics.html" class="md-footer__link md-footer__link--next" rel="next">
+        <a href="artifacts.html" class="md-footer__link md-footer__link--next" rel="next">
           <div class="md-footer__title">
             <div class="md-ellipsis">
               <span class="md-footer__direction">
                 Next
               </span>
-              Statistics
+              Amplitude-based
             </div>
           </div>
           <div class="md-footer__button md-icon">

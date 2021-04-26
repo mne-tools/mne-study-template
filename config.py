@@ -779,7 +779,7 @@ order to remove the artifacts. The ICA procedure can be configured in various
 ways using the configuration options you can find below.
 """
 
-ica_reject: Optional[Union[Dict[str, float], Literal['auto']]] = 'auto'
+ica_reject: Optional[Union[Dict[str, float], Literal['auto']]] = None
 """
 Peak-to-peak amplitude limits to exclude epochs from ICA fitting.
 
@@ -791,9 +791,12 @@ your data, and remove them. For this to work properly, it is recommended
 to **not** specify rejection thresholds for EOG and ECG channels here –
 otherwise, ICA won't be able to "see" these artifacts.
 
-If `'auto'` (default), use `autoreject` to find suitable rejection thresholds
-for each channel type. If a dictionary, manually specify rejection thresholds
-(see examples). If `None`, do not apply automated rejection.
+If `None` (default), do not apply automated rejection. If a dictionary,
+manually specify rejection thresholds (see examples).  If `'auto'`, use
+[`autoreject`](https://autoreject.github.io) to find suitable "global"
+rejection thresholds for each channel type, i.e. `autoreject` will generate
+a dictionary with (hopefully!) optimal thresholds for each channel type. Note
+that using `autoreject` can be a time-consuming process.
 
 ???+ example "Example"
     ```python
@@ -1530,6 +1533,8 @@ def _get_reject(
 ) -> Union[Dict[str, float], Literal['auto']]:
     if reject is None:
         return dict()
+    elif reject == 'auto':
+        return reject
 
     reject = reject.copy()
 

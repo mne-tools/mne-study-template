@@ -14,7 +14,8 @@ authors:
 - The new configuration option [`ica_reject`][config.ica_reject] allows to
   exclude epochs from the ICA fit based on peak-to-peak amplitude. The
   thresholds can be manually specified or automatically determined using
-  `autoreject`. ({{ gh(302) }}, {{ gh(306) }} by {{ authors.hoechenberger }})
+  [`autoreject`](https://autoreject.github.io).
+  ({{ gh(302) }}, {{ gh(306) }} by {{ authors.hoechenberger }})
 
 ### Behavior changes
 

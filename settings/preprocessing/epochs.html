@@ -1394,7 +1394,7 @@ This will add two new columns to the metadata: <code>response</code>, indicating
 the <strong>time</strong> relative to the time-locked event; and <code>first_response</code>,
 depicting the <strong>type</strong> of event (<code>'left'</code> or <code>'right'</code>).</p>
 <p>You may also specify a grouping for multiple event types:
-<div class="highlight"><pre><span></span><code><span class="n">keep_first</span><span class="o">=</span><span class="p">[</span><span class="s1">&#39;response&#39;</span><span class="p">,</span> <span class="s1">&#39;stimulus&#39;</span><span class="p">]</span><span class="o">.</span>
+<div class="highlight"><pre><span></span><code><span class="n">epochs_metadata_keep_first</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;response&#39;</span><span class="p">,</span> <span class="s1">&#39;stimulus&#39;</span><span class="p">]</span>
 </code></pre></div>
 This will add the columns <code>response</code>, <code>first_response</code>, <code>stimulus</code>,
 and <code>first_stimulus</code>.</p>

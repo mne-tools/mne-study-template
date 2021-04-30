@@ -1100,6 +1100,11 @@
   In previous versions of the Pipeline, rejection was carried out before ICA
   and SSP. The exclude epochs from ICA fitting, use the new
   <a href="settings/preprocessing/ssp_ica.html#config.ica_reject"><code>ica_reject</code></a> setting.</li>
+<li>We don't apply SSP by default anymore.
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/315">#315</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
+<li>The <code>use_ssp</code> and <code>use_ica</code> settings have been removed. Please use the
+  <a href="settings/preprocessing/ssp_ica.html#config.spatial_filter"><code>spatial_filter</code></a> setting instead.
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/315">#315</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
 </ul>
 <h3 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>

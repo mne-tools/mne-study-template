@@ -520,14 +520,14 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pathlib.bids_root" class="md-nav__link">
+  <a href="#config.bids_root" class="md-nav__link">
     bids_root
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#pathlib.deriv_root" class="md-nav__link">
+  <a href="#config.deriv_root" class="md-nav__link">
     deriv_root
   </a>
   
@@ -1178,14 +1178,14 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#pathlib.bids_root" class="md-nav__link">
+  <a href="#config.bids_root" class="md-nav__link">
     bids_root
   </a>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#pathlib.deriv_root" class="md-nav__link">
+  <a href="#config.deriv_root" class="md-nav__link">
     deriv_root
   </a>
   
@@ -1384,14 +1384,21 @@ saving the analysis results.</p>
 
 
 
-<h2 id="pathlib.bids_root" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">bids_root</span><span class="p">:</span> <span class="kc">None</span></code>
+<h2 id="config.bids_root" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">bids_root</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span></code>
 
 
-<a href="#pathlib.bids_root" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#config.bids_root" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+      <p>Specify the BIDS root directory. Pass an empty string or <code>`None</code> to use
+the value specified in the <code>BIDS_ROOT</code> environment variable instead.
+Raises an exception if the BIDS root has not been specified.</p>
+<details class="example" open="open"><summary>Example</summary><div class="highlight"><pre><span></span><code><span class="n">bids_root</span> <span class="o">=</span> <span class="s1">&#39;/path/to/your/bids_root&#39;</span>  <span class="c1"># Use this to specify a path here.</span>
+<span class="n">bids_root</span> <span class="o">=</span> <span class="kc">None</span>  <span class="c1"># Make use of the ``BIDS_ROOT`` environment variable.</span>
+</code></pre></div>
+</details>
     </div>
 
   </div>
@@ -1402,14 +1409,17 @@ saving the analysis results.</p>
 
 
 
-<h2 id="pathlib.deriv_root" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">deriv_root</span><span class="p">:</span> <span class="kc">None</span></code>
+<h2 id="config.deriv_root" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">deriv_root</span><span class="p">:</span> <span class="n">Union</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">pathlib</span><span class="o">.</span><span class="n">Path</span><span class="p">]</span></code>
 
 
-<a href="#pathlib.deriv_root" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#config.deriv_root" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
+      <p>The root of the derivatives directory in which the pipeline will store
+the processing results. If <code>None</code>, this will be
+<code>derivatives/mne-bids-pipeline</code> inside the BIDS root.</p>
     </div>
 
   </div>

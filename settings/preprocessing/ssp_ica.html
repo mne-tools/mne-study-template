@@ -67,7 +67,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#config.use_ssp" class="md-skip">
+        <a href="#config.spatial_filter" class="md-skip">
           Skip to content
         </a>
       
@@ -670,15 +670,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#config.use_ssp" class="md-nav__link">
-    use_ssp
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config.use_ica" class="md-nav__link">
-    use_ica
+  <a href="#config.spatial_filter" class="md-nav__link">
+    spatial_filter
   </a>
   
 </li>
@@ -1077,15 +1070,8 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#config.use_ssp" class="md-nav__link">
-    use_ssp
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#config.use_ica" class="md-nav__link">
-    use_ica
+  <a href="#config.spatial_filter" class="md-nav__link">
+    spatial_filter
   </a>
   
 </li>
@@ -1169,36 +1155,25 @@
 
 
 
-<h2 id="config.use_ssp" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">use_ssp</span><span class="p">:</span> <span class="nb">bool</span></code>
+<h2 id="config.spatial_filter" class="doc doc-heading">
+<code class="highlight language-python"><span class="n">spatial_filter</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">Literal</span><span class="p">[</span><span class="s1">&#39;ssp&#39;</span><span class="p">,</span> <span class="s1">&#39;ica&#39;</span><span class="p">]]</span></code>
 
 
-<a href="#config.use_ssp" class="headerlink" title="Permanent link">&para;</a></h2>
-
-    <div class="doc doc-contents first">
-
-      <p>Whether signal-space projection should be used or not. The BIDS Pipeline will
-try to recover EOG and ECG artifacts, and produce projection vectors that
-remove these signals from the data.</p>
-    </div>
-
-  </div>
-
-
-
-  <div class="doc doc-object doc-attribute">
-
-
-
-<h2 id="config.use_ica" class="doc doc-heading">
-<code class="highlight language-python"><span class="n">use_ica</span><span class="p">:</span> <span class="nb">bool</span></code>
-
-
-<a href="#config.use_ica" class="headerlink" title="Permanent link">&para;</a></h2>
+<a href="#config.spatial_filter" class="headerlink" title="Permanent link">&para;</a></h2>
 
     <div class="doc doc-contents first">
 
-      <p>Whether independent component analysis should be used or not.</p>
+      <p>Whether to use a spatial filter to detect and remove artifacts. The BIDS
+Pipeline offers the use of signal-space projection (SSP) and independent
+component analysis (ICA).</p>
+<p>Use <code>'ssp'</code> for SSP, <code>'ica'</code> for ICA, and <code>None</code> if you do not wish to apply
+a spatial filter for artifact removal.</p>
+<p>The Pipeline will try to automatically discover EOG and ECG artifacts. For SSP,
+it will then produce projection vectors that remove ("project out") these
+artifacts from the data. For ICA, the independent components related to
+EOG and ECG activity will be omitted during the signal reconstruction step in
+order to remove the artifacts. The ICA procedure can be configured in various
+ways using the configuration options you can find below.</p>
     </div>
 
   </div>

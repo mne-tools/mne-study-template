@@ -1102,9 +1102,14 @@
   <a href="settings/preprocessing/ssp_ica.html#config.ica_reject"><code>ica_reject</code></a> setting.</li>
 <li>We don't apply SSP by default anymore.
   (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/315">#315</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
-<li>The <code>use_ssp</code> and <code>use_ica</code> settings have been removed. Please use the
+<li>The <code>use_ssp</code> and <code>use_ica</code> settings have been removed. Please use the new
   <a href="settings/preprocessing/ssp_ica.html#config.spatial_filter"><code>spatial_filter</code></a> setting instead.
   (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/315">#315</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
+<li>The <code>allow_maxshield</code> setting has been removed. The Pipeline now
+  automatically ensures that FIFF files of recordings with active
+  shielding (MaxShield) can be imported. Later stages of the Pipeline will fail
+  if Maxwell filtering of such data is disabled via <code>use_maxwell_filter=False</code>.
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/318">#318</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
 </ul>
 <h3 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>

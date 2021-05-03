@@ -43,7 +43,7 @@ def plot_events(subject, session):
                          suffix='raw',
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
 
     for run in config.get_runs():
@@ -78,18 +78,13 @@ def plot_er_psd(subject, session):
                          suffix='raw',
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
-
-    extra_params = dict()
-    if not config.use_maxwell_filter and config.allow_maxshield:
-        extra_params['allow_maxshield'] = config.allow_maxshield
 
     if raw_fname.copy().update(split='01').fpath.exists():
         raw_fname.update(split='01')
 
-    raw_er_filtered = mne.io.read_raw_fif(raw_fname, preload=True,
-                                          **extra_params)
+    raw_er_filtered = mne.io.read_raw_fif(raw_fname, preload=True)
 
     fmax = 1.5 * config.h_freq if config.h_freq is not None else np.inf
     fig = raw_er_filtered.plot_psd(fmax=fmax, show=False)
@@ -112,7 +107,7 @@ def plot_auto_scores(subject, session):
                             suffix='scores',
                             extension='.json',
                             datatype=config.get_datatype(),
-                            root=config.deriv_root,
+                            root=config.get_deriv_root(),
                             check=False)
 
     all_figs = []
@@ -201,31 +196,39 @@ def plot_decoding_scores_gavg(decoding_data):
 
 
 def run_report(subject, session=None):
+    task = config.get_task()
     bids_path = BIDSPath(subject=subject,
                          session=session,
-                         task=config.get_task(),
+                         task=task,
                          acquisition=config.acq,
                          run=None,
                          recording=config.rec,
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
 
     fname_ave = bids_path.copy().update(suffix='ave')
     fname_trans = bids_path.copy().update(suffix='trans')
-    fname_epo = bids_path.copy().update(suffix='epo')
+    fname_epo = bids_path.copy().update(processing='clean', suffix='epo')
     fname_trans = bids_path.copy().update(suffix='trans')
     fname_ica = bids_path.copy().update(suffix='ica')
-    fname_decoding = fname_epo.copy().update(suffix='decoding',
+    fname_decoding = fname_epo.copy().update(processing=None,
+                                             suffix='decoding',
                                              extension='.mat')
 
     fs_subject = config.get_fs_subject(subject)
     fs_subjects_dir = config.get_fs_subjects_dir()
 
+    title = f'sub-{subject}'
+    if session is not None:
+        title += f', ses-{session}'
+    if task is not None:
+        title += f', task-{task}'
+
     params: Dict[str, Any] = dict(info_fname=fname_ave, raw_psd=True,
-                                  subject=fs_subject)
+                                  subject=fs_subject, title=title)
     if op.exists(fname_trans):
         params['subjects_dir'] = fs_subjects_dir
 
@@ -261,7 +264,7 @@ def run_report(subject, session=None):
     #
     # Visualize effect of ICA artifact rejection.
     #
-    if config.use_ica:
+    if config.spatial_filter == 'ica':
         epochs = mne.read_epochs(fname_epo)
         ica = mne.preprocessing.read_ica(fname_ica)
         fig = ica.plot_overlay(epochs.average(), show=False)
@@ -441,7 +444,7 @@ def add_event_counts(*,
                      session: str,
                      report: mne.Report) -> None:
     try:
-        df_events = count_events(BIDSPath(root=config.bids_root,
+        df_events = count_events(BIDSPath(root=config.get_bids_root(),
                                           session=session))
     except ValueError:
         logger.warning('Could not read events.')
@@ -484,7 +487,7 @@ def add_event_counts(*,
 #                             suffix='epo',
 #                             extension='.fif',
 #                             datatype=config.get_datatype(),
-#                             root=config.deriv_root,
+#                             root=config.get_deriv_root(),
 #                             check=False)
 
 #     for subject in config.get_subjects():
@@ -497,9 +500,10 @@ def run_report_average(session: str) -> None:
     import matplotlib.pyplot as plt  # nested import to help joblib
 
     subject = 'average'
+    task = config.get_task()
     evoked_fname = BIDSPath(subject=subject,
                             session=session,
-                            task=config.get_task(),
+                            task=task,
                             acquisition=config.acq,
                             run=None,
                             recording=config.rec,
@@ -507,11 +511,18 @@ def run_report_average(session: str) -> None:
                             suffix='ave',
                             extension='.fif',
                             datatype=config.get_datatype(),
-                            root=config.deriv_root,
+                            root=config.get_deriv_root(),
                             check=False)
 
+    title = f'sub-{subject}'
+    if session is not None:
+        title += f', ses-{session}'
+    if task is not None:
+        title += f', task-{task}'
+
     rep = mne.Report(info_fname=evoked_fname, subject='fsaverage',
-                     subjects_dir=config.get_fs_subjects_dir())
+                     subjects_dir=config.get_fs_subjects_dir(),
+                     title=title)
     evokeds = mne.read_evokeds(evoked_fname)
     if config.analyze_channels:
         for evoked in evokeds:

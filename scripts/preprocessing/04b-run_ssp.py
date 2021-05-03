@@ -59,7 +59,7 @@ def run_ssp(subject, session=None):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root)
+                         root=config.get_deriv_root())
 
     # Prepare a name to save the data
     raw_fname_in = bids_path.copy().update(processing='filt', suffix='raw',
@@ -83,28 +83,38 @@ def run_ssp(subject, session=None):
     msg = 'Computing SSPs for ECG'
     logger.debug(gen_log_message(message=msg, step=4, subject=subject,
                                  session=session))
-    ecg_projs, ecg_events = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=0,
-                                             average=True, reject=reject_ecg)
+    ecg_projs, _ = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=0,
+                                    average=True, reject=reject_ecg)
+
+    if not ecg_projs:
+        msg = 'No ECG events could be found. No ECG projectors computed.'
+        logger.info(gen_log_message(message=msg, step=4, subject=subject,
+                                    session=session))
+
     msg = 'Computing SSPs for EOG'
     logger.debug(gen_log_message(message=msg, step=4, subject=subject,
                                  session=session))
     if config.eog_channels:
+        ch_names = config.eog_channels
         assert all([ch_name in raw.ch_names
-                    for ch_name in config.eog_channels])
-        ch_name = ','.join(config.eog_channels)
+                    for ch_name in ch_names])
     else:
-        ch_name = None
+        ch_names = None
 
-    eog_projs, eog_events = compute_proj_eog(raw, ch_name=ch_name,
-                                             n_grad=1, n_mag=1, n_eeg=1,
-                                             average=True, reject=reject_eog)
+    eog_projs, _ = compute_proj_eog(raw, ch_name=ch_name,
+                                    n_grad=1, n_mag=1, n_eeg=1,
+                                    average=True, reject=reject_eog)
+    if not eog_projs:
+        msg = 'No EOG events could be found. No EOG projectors computed.'
+        logger.info(gen_log_message(message=msg, step=4, subject=subject,
+                                    session=session))
 
     mne.write_proj(proj_fname_out, eog_projs + ecg_projs)
 
 
 def main():
     """Run SSP."""
-    if not config.use_ssp:
+    if not config.spatial_filter == 'ssp':
         return
 
     msg = 'Running Step 4: SSP'

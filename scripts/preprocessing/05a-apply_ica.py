@@ -34,20 +34,21 @@ logger = logging.getLogger('mne-bids-pipeline')
 
 @failsafe_run(on_error=on_error)
 def apply_ica(subject, session):
+    task = config.get_task()
     bids_basename = BIDSPath(subject=subject,
                              session=session,
-                             task=config.get_task(),
+                             task=task,
                              acquisition=config.acq,
                              run=None,
                              recording=config.rec,
                              space=config.space,
                              datatype=config.get_datatype(),
-                             root=config.deriv_root,
+                             root=config.get_deriv_root(),
                              check=False)
 
     fname_epo_in = bids_basename.copy().update(suffix='epo', extension='.fif')
     fname_epo_out = bids_basename.copy().update(
-        suffix='epo', processing='clean', extension='.fif')
+        processing='ica', suffix='epo', extension='.fif')
     fname_ica = bids_basename.copy().update(suffix='ica', extension='.fif')
     fname_ica_components = bids_basename.copy().update(
         processing='ica', suffix='components', extension='.tsv')
@@ -60,9 +61,15 @@ def apply_ica(subject, session):
                                 session=session))
 
     report_fname = (bids_basename.copy()
-                    .update(processing='clean', suffix='report',
+                    .update(processing='ica', suffix='report',
                             extension='.html'))
-    report = Report(report_fname, verbose=False)
+
+    title = f'ICA artifact removal – sub-{subject}'
+    if session is not None:
+        title += f', ses-{session}'
+    if task is not None:
+        title += f', task-{task}'
+    report = Report(report_fname, title=title, verbose=False)
 
     # Load ICA.
     msg = f'Reading ICA: {fname_ica}'
@@ -82,7 +89,12 @@ def apply_ica(subject, session):
     #
     # Note that up until now, we haven't actually rejected any ICs from the
     # epochs.
-    evoked = epochs.average()
+    #
+    # We apply baseline correction here to (hopefully!) make the effects of
+    # ICA easier to see. Otherwise, individual channels might just have
+    # arbitrary DC shifts, and we wouldn't be able to easily decipher what's
+    # going on!
+    evoked = epochs.average().apply_baseline(config.baseline)
 
     # Plot source time course
     fig = ica.plot_sources(evoked, show=config.interactive)
@@ -102,9 +114,8 @@ def apply_ica(subject, session):
     logger.info(gen_log_message(message=msg, step=5, subject=subject,
                                 session=session))
     epochs_cleaned = ica.apply(epochs.copy())  # Copy b/c works in-place!
-    epochs_cleaned.apply_baseline(config.baseline)
 
-    msg = 'Saving cleaned epochs.'
+    msg = 'Saving reconstructed epochs after ICA.'
     logger.info(gen_log_message(message=msg, step=5, subject=subject,
                                 session=session))
     epochs_cleaned.save(fname_epo_out, overwrite=True)
@@ -115,7 +126,7 @@ def apply_ica(subject, session):
 
 def main():
     """Apply ICA."""
-    if not config.use_ica:
+    if not config.spatial_filter == 'ica':
         return
 
     msg = 'Running Step 5: Apply ICA'

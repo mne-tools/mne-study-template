@@ -1,16 +1,15 @@
 """
-Localizer
+hMT+ Localizer
 """
 study_name = 'localizer'
 bids_root = '~/mne_data/ds003392'
 
-subjects_list = ['01']
+subjects = ['01']
 
 task = 'localizer'
 find_flat_channels_meg = True
 find_noisy_channels_meg = True
 use_maxwell_filter = True
-allow_maxshield = True
 ch_types = ['meg']
 
 l_freq = 1.
@@ -18,8 +17,7 @@ h_freq = 40.
 resample_sfreq = 250
 
 # Artifact correction.
-use_ssp = False
-use_ica = True
+spatial_filter = 'ica'
 ica_max_iterations = 500
 ica_l_freq = 1.
 ica_n_components = 0.99

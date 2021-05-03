@@ -50,11 +50,12 @@ logger = logging.getLogger('mne-bids-pipeline')
 
 def get_mf_cal_fname(subject, session):
     if config.mf_cal_fname is None:
-        mf_cal_fpath = BIDSPath(subject=subject,
-                                session=session,
-                                suffix='meg',
-                                datatype='meg',
-                                root=config.bids_root).meg_calibration_fpath
+        mf_cal_fpath = (BIDSPath(subject=subject,
+                                 session=session,
+                                 suffix='meg',
+                                 datatype='meg',
+                                 root=config.get_bids_root())
+                        .meg_calibration_fpath)
         if mf_cal_fpath is None:
             raise ValueError('Could not find Maxwell Filter Calibration '
                              'file.')
@@ -69,11 +70,12 @@ def get_mf_cal_fname(subject, session):
 
 def get_mf_ctc_fname(subject, session):
     if config.mf_ctc_fname is None:
-        mf_ctc_fpath = BIDSPath(subject=subject,
-                                session=session,
-                                suffix='meg',
-                                datatype='meg',
-                                root=config.bids_root).meg_crosstalk_fpath
+        mf_ctc_fpath = (BIDSPath(subject=subject,
+                                 session=session,
+                                 suffix='meg',
+                                 datatype='meg',
+                                 root=config.get_bids_root())
+                        .meg_crosstalk_fpath)
         if mf_ctc_fpath is None:
             raise ValueError('Could not find Maxwell Filter cross-talk '
                              'file.')
@@ -142,12 +144,14 @@ def find_bad_channels(raw, subject, session, task, run):
                          space=config.space,
                          suffix=config.get_datatype(),
                          datatype=config.get_datatype(),
-                         root=config.deriv_root)
+                         root=config.get_deriv_root())
 
     auto_noisy_chs, auto_flat_chs, auto_scores = find_bad_channels_maxwell(
         raw=raw,
         calibration=get_mf_cal_fname(subject, session),
         cross_talk=get_mf_ctc_fname(subject, session),
+        origin=config.mf_head_origin,
+        coord_frame='head',
         return_scores=True)
 
     preexisting_bads = raw.info['bads'].copy()
@@ -219,12 +223,7 @@ def load_data(bids_path):
     subject = bids_path.subject
     session = bids_path.session
 
-    extra_params = dict()
-    if config.allow_maxshield:
-        extra_params['allow_maxshield'] = config.allow_maxshield
-
-    raw = read_raw_bids(bids_path=bids_path,
-                        extra_params=extra_params)
+    raw = read_raw_bids(bids_path=bids_path)
 
     if subject != 'emptyroom':
         # Crop the data.
@@ -241,7 +240,7 @@ def load_data(bids_path):
 
     montage_name = config.eeg_template_montage
     if config.get_datatype() == 'eeg' and montage_name:
-        msg = (f'Setting EEG channel locatiions to template montage: '
+        msg = (f'Setting EEG channel locations to template montage: '
                f'{montage_name}.')
         logger.info(gen_log_message(message=msg, step=1, subject=subject,
                                     session=session))
@@ -260,6 +259,27 @@ def load_data(bids_path):
             mne.set_bipolar_reference(raw, anode=anode, cathode=cathode,
                                       ch_name=ch_name, drop_refs=False,
                                       copy=False)
+
+        # If we created a new bipolar channel that the user wishes to
+        # use as an EOG channel, it is probably a good idea to set its channel
+        # type to 'eog'. Bipolar channels, by default, don't have a location,
+        # so one might get unexpected results otherwise, as the channel would
+        # influence e.g. in GFP calculations, but not appear on topographic
+        # maps.
+        if (config.eog_channels and
+                any([eog_ch_name in config.eeg_bipolar_channels
+                     for eog_ch_name in config.eog_channels])):
+            msg = 'Setting channel type of new bipolar EOG channel(s) …'
+            logger.info(gen_log_message(message=msg, step=1, subject=subject,
+                                        session=session))
+
+        for eog_ch_name in config.eog_channels:
+            if eog_ch_name in config.eeg_bipolar_channels:
+                msg = f'    {eog_ch_name} -> eog'
+                logger.info(gen_log_message(message=msg, step=1,
+                                            subject=subject,
+                                            session=session))
+                raw.set_channel_types({eog_ch_name: 'eog'})
 
     if config.drop_channels:
         msg = f'Dropping channels: {", ".join(config.drop_channels)}'
@@ -285,9 +305,9 @@ def run_maxwell_filter(subject, session=None):
                             space=config.space,
                             suffix=config.get_datatype(),
                             datatype=config.get_datatype(),
-                            root=config.bids_root)
+                            root=config.get_bids_root())
     bids_path_out = bids_path_in.copy().update(suffix='raw',
-                                               root=config.deriv_root,
+                                               root=config.get_deriv_root(),
                                                check=False)
 
     # Load dev_head_t and digitization points from MaxFilter reference run.
@@ -420,7 +440,7 @@ def run_maxwell_filter(subject, session=None):
                     msg = (f'Experimental data rank {rank_exp:.1f} does not '
                            f'match empty-room data rank {rank_er:.1f} after '
                            f'Maxwell filtering. This indicates that the data '
-                           f'were processed  differenlty.')
+                           f'were processed  differently.')
                     raise RuntimeError(msg)
 
                 raw_er_out = raw_er_sss

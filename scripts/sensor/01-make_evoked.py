@@ -31,11 +31,9 @@ def run_evoked(subject, session=None):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root)
+                         root=config.get_deriv_root())
 
-    processing = None
-    if config.use_ica or config.use_ssp:
-        processing = 'clean'
+    processing = 'clean'  # always use the clean epochs
 
     fname_in = bids_path.copy().update(processing=processing, suffix='epo',
                                        check=False)

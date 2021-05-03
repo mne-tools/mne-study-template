@@ -35,10 +35,10 @@ def apply_ssp(subject, session=None):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root)
+                         root=config.get_deriv_root())
 
     fname_in = bids_path.copy().update(suffix='epo', check=False)
-    fname_out = bids_path.copy().update(processing='clean', suffix='epo',
+    fname_out = bids_path.copy().update(processing='ssp', suffix='epo',
                                         check=False)
 
     epochs = mne.read_epochs(fname_in, preload=True)
@@ -55,9 +55,8 @@ def apply_ssp(subject, session=None):
 
     projs = mne.read_proj(proj_fname_in)
     epochs_cleaned = epochs.copy().add_proj(projs).apply_proj()
-    epochs_cleaned.apply_baseline(config.baseline)
 
-    msg = 'Saving epochs'
+    msg = 'Saving epochs with projectors.'
     logger.info(gen_log_message(message=msg, step=5, subject=subject,
                                 session=session))
     epochs_cleaned.save(fname_out, overwrite=True)
@@ -65,7 +64,7 @@ def apply_ssp(subject, session=None):
 
 def main():
     """Apply ssp."""
-    if not config.use_ssp:
+    if not config.spatial_filter == 'ssp':
         return
 
     msg = 'Running Step 5: Apply SSP'

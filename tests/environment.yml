@@ -25,6 +25,7 @@ dependencies:
   - mkdocs-material
   - mkdocs-material-extensions
   - mkdocstrings
+  - mkdocs-macros-plugin
   - coloredlogs
   - autoreject
   - pip:

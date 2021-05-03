@@ -45,7 +45,7 @@ def run_epochs(subject, session=None):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root)
+                         root=config.get_deriv_root())
 
     for run in config.get_runs():
         # Prepare a name to save the data
@@ -112,6 +112,7 @@ def run_epochs(subject, session=None):
         sfreq=raw.info['sfreq'])
 
     # Epoch the data
+    # Do not reject based on peak-to-peak or flatness thresholds at this stage
     msg = (f'Creating epochs with duration: '
            f'[{config.epochs_tmin}, {config.epochs_tmax}] sec')
     logger.info(gen_log_message(message=msg, step=3, subject=subject,

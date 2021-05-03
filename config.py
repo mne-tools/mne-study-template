@@ -11,7 +11,8 @@ import traceback
 import sys
 import copy
 import logging
-from typing import Optional, Union, Iterable, List, Tuple, Dict
+
+from typing import Optional, Union, Iterable, List, Tuple, Dict, Callable
 if sys.version_info >= (3, 8):
     from typing import Literal
 else:
@@ -39,7 +40,7 @@ saving the analysis results.
 
 bids_root: Optional[PathLike] = None
 """
-Speficy the BIDS root directory. Pass an empty string or ```None`` to use
+Specify the BIDS root directory. Pass an empty string or ```None`` to use
 the value specified in the ``BIDS_ROOT`` environment variable instead.
 Raises an exception if the BIDS root has not been specified.
 
@@ -221,7 +222,7 @@ of ocular activity, and you might want to use them as "virtual" EOG channels,
 while also including them in the EEG analysis. By default, MNE won't know that
 these channels are suitable for recovering EOG, and hence won't be able to
 perform tasks like automated blink removal, unless a "true" EOG sensor is
-present in the data as well. Speficying channel names here allows MNE to find
+present in the data as well. Specifying channel names here allows MNE to find
 the respective EOG signals based on these channels.
 
 You can specify one or multiple channel names. Each will be treated as if it
@@ -564,53 +565,6 @@ can be used for resampling raw data. ``1`` means no decimation.
     ```
 """
 
-###############################################################################
-# AUTOMATIC REJECTION OF ARTIFACTS
-# --------------------------------
-
-reject: Optional[Union[dict, Literal['auto']]] = None
-"""
-The rejection limits to mark epochs as bads.
-This allows to remove strong transient artifacts.
-If you want to reject and retrieve blinks or ECG artifacts later, e.g.
-with ICA, don't specify a value for the EOG and ECG channels, respectively
-(see examples below).
-
-Pass ``None`` to avoid automated epoch rejection based on amplitude.
-
-Pass ``'auto'`` if you want to automate the estimation of the reject
-parameter using AutoReject [Jas et al. 2017] (See https://autoreject.github.io).
-AutoReject is useful as the optimal rejection thresholds tend to vary between
-subjects.
-
-???+ example "Example"
-    ```python
-    reject = {'grad': 4000e-13, 'mag': 4e-12, 'eog': 150e-6}
-    reject = {'grad': 4000e-13, 'mag': 4e-12, 'eeg': 200e-6}
-    reject = None
-    reject = 'auto'
-    ```
-"""
-
-reject_tmin: Optional[float] = None
-"""
-Start of the time window used to reject epochs. If ``None``, the window will
-start with the first time point.
-???+ example "Example"
-    ```python
-    reject_tmin = -0.1  # 100 ms before event onset.
-    ```
-"""
-
-reject_tmax: Optional[float] = None
-"""
-End of the time window used to reject epochs. If ``None``, the window will end
-with the last time point.
-???+ example "Example"
-    ```python
-    reject_tmax = 0.3  # 300 ms after event onset.
-    ```
-"""
 
 ###############################################################################
 # RENAME EXPERIMENTAL EVENTS
@@ -699,7 +653,7 @@ aggregation will take place and no new columns will be created.
 
     You may also specify a grouping for multiple event types:
     ```python
-    keep_first=['response', 'stimulus'].
+    epochs_metadata_keep_first = ['response', 'stimulus']
     ```
     This will add the columns ``response``, ``first_response``, ``stimulus``,
     and ``first_stimulus``.
@@ -819,20 +773,41 @@ of contrasts.
 #
 # Currently you cannot use both.
 
-# SSP
-# ~~~
-
-use_ssp: bool = True
+spatial_filter: Optional[Literal['ssp', 'ica']] = None
 """
-Whether signal-space projection should be used or not.
+Whether to use a spatial filter to detect and remove artifacts. The BIDS
+Pipeline offers the use of signal-space projection (SSP) and independent
+component analysis (ICA).
+
+Use `'ssp'` for SSP, `'ica'` for ICA, and `None` if you do not wish to apply
+a spatial filter for artifact removal.
+
+The Pipeline will try to automatically discover EOG and ECG artifacts. For SSP,
+it will then produce projection vectors that remove ("project out") these
+artifacts from the data. For ICA, the independent components related to
+EOG and ECG activity will be omitted during the signal reconstruction step in
+order to remove the artifacts. The ICA procedure can be configured in various
+ways using the configuration options you can find below.
 """
 
-# ICA
-# ~~~
-
-use_ica: bool = False
+ica_reject: Optional[Dict[str, float]] = None
 """
-Whether independent component analysis should be used or not.
+Peak-to-peak amplitude limits to exclude epochs from ICA fitting.
+
+This allows you to remove strong transient artifacts, which could negatively
+affect ICA performance.
+
+The BIDS Pipeline will automatically try to detect EOG and ECG artifacts in
+your data, and remove them. For this to work properly, it is recommended
+to **not** specify rejection thresholds for EOG and ECG channels here –
+otherwise, ICA won't be able to "see" these artifacts.
+
+???+ example "Example"
+    ```python
+    ica_reject = {'grad': 10e-10, 'mag': 20e-12, 'eeg': 400e-6}
+    ica_reject = {'grad': 15e-10}
+    ica_reject = None
+    ```
 """
 
 ica_algorithm: Literal['picard', 'fastica', 'extended_infomax'] = 'picard'
@@ -844,7 +819,7 @@ ica_l_freq: Optional[float] = 1.
 """
 The cutoff frequency of the high-pass filter to apply before running ICA.
 Using a relatively high cutoff like 1 Hz will remove slow drifts from the
-data, yielding improved ICA results.
+data, yielding improved ICA results. Must be set to 1 Hz or above.
 
 Set to ``None`` to not apply an additional high-pass filter.
 
@@ -852,6 +827,13 @@ Note: Note
       The filter will be applied to raw data which was already filtered
       according to the ``l_freq`` and ``h_freq`` settings. After filtering, the
       data will be epoched, and the epochs will be submitted to ICA.
+
+!!! info
+    The Pipeline will only allow you to perform ICA on data that has been
+    high-pass filtered with a 1 Hz cutoff or higher. This is a conscious,
+    opinionated (but partially data-driven) decision made by the developers.
+    If you have reason to challenge this behavior, please get in touch with
+    us so we can discuss.
 """
 
 ica_max_iterations: int = 500
@@ -909,6 +891,56 @@ ica_eog_threshold: float = 3.0
 The threshold to use during automated EOG classification. Lower values mean
 that more ICs will be identified as EOG-related. If too low, the
 false-alarm rate increases dramatically.
+"""
+
+
+# Rejection based on peak-to-peak amplitude
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+reject: Optional[Union[dict, Literal['auto']]] = None
+"""
+Peak-to-peak amplitude limits to mark epochs as bad. This allows you to remove
+epochs with strong transient artifacts.
+
+Pass ``None`` to avoid automated epoch rejection based on amplitude.
+
+Pass ``'auto'`` if you want to automate the estimation of the reject
+parameter using AutoReject [Jas et al. 2017] (See https://autoreject.github.io).
+AutoReject is useful as the optimal rejection thresholds tend to vary between
+subjects.
+
+Note: Note
+      The rejection is performed **after** SSP or ICA, if any of those methods
+      is used. To reject epochs before fitting ICA, see the
+      [`ica_reject`][config.ica_reject] setting.
+
+???+ example "Example"
+    ```python
+    reject = {'grad': 4000e-13, 'mag': 4e-12, 'eog': 150e-6}
+    reject = {'eeg': 100e-6, 'eog': 250e-6}
+    reject = None
+    reject = 'auto'  # use autoreject
+    ```
+"""
+
+reject_tmin: Optional[float] = None
+"""
+Start of the time window used to reject epochs. If ``None``, the window will
+start with the first time point.
+???+ example "Example"
+    ```python
+    reject_tmin = -0.1  # 100 ms before event onset.
+    ```
+"""
+
+reject_tmax: Optional[float] = None
+"""
+End of the time window used to reject epochs. If ``None``, the window will end
+with the last time point.
+???+ example "Example"
+    ```python
+    reject_tmax = 0.3  # 300 ms after event onset.
+    ```
 """
 
 ###############################################################################
@@ -1007,11 +1039,71 @@ found. If ``False``, the BEM surfaces are only created if they do not exist
 already. ``True`` forces their recreation, overwriting existing BEM surfaces.
 """
 
+mri_t1_path_generator: Optional[Callable] = None
+"""
+To perform source-level analyses, the Pipeline needs to generate a
+transformation matrix that translates coordinates from MEG and EEG sensor
+space to MRI space, and vice versa. This process, called "coregistration",
+requires access to both, the electrophyisiological recordings as well as
+T1-weighted MRI images of the same participant. If both are stored within
+the same session, the Pipeline (or, more specifically, MNE-BIDS) can find the
+respective files automatically.
+
+However, in certain situations, this is not possible. Examples include:
+
+- MRI was conducted during a different session than the electrophysiological
+  recording.
+- MRI was conducted in a single session, while electrophysiological recordings
+  spanned across several sessions.
+- MRI and electrophysiological data are stored in separate BIDS datasets to
+  allow easier storage and distribution in certain situations.
+
+To allow the Pipeline to find the correct MRI images and perform coregistration
+automatically, we provide a "hook" that allows you to provide in a custom
+function whose output tells the Pipeline where to find the T1-weighted image.
+
+The function is expected to accept a single parameter. The Pipeline will pass
+a `BIDSPath` with the following parameters set based on the currently processed
+electrophysiological data:
+
+- the subject ID, `BIDSPath.subject`
+- the experimental session, `BIDSPath.session`
+- the BIDS root, `BIDSPath.root`
+
+This `BIDSPath` can then be modified – or an entirely new `BIDSPath` can be
+generated – and returned by the function, pointing to the T1-weighted image.
+
+Note: Note
+    The function accepts and returns a single `BIDSPath`.
+
+???+ example "Example"
+    The MRI session is different than the electrophysiological session:
+    ```python
+    def get_t1_from_meeg(bids_path):
+        bids_path.session = 'MRI'
+        return bids_path
+
+
+    mri_t1_path_generator = get_t1_from_meeg
+    ```
+
+    The MRI recording is stored in a different BIDS dataset than the
+    electrophysiological data:
+    ```python
+    def get_t1_from_meeg(bids_path):
+        bids_path.root = '/data/mri'
+        return bids_path
+
+
+    mri_t1_path_generator = get_t1_from_meeg
+    ```
+"""
+
 spacing: Union[Literal['oct5', 'oct6', 'ico4', 'ico5', 'all'], int] = 'oct6'
 """
 The spacing to use. Can be ``'ico#'`` for a recursively subdivided
 icosahedron, ``'oct#'`` for a recursively subdivided octahedron,
-``'all'`` for all points, or an integer to use appoximate
+``'all'`` for all points, or an integer to use approximate
 distance-based spacing (in mm). See (the respective MNE-Python documentation)
 [https://mne.tools/dev/overview/cookbook.html#setting-up-the-source-space]
 for more info.
@@ -1111,9 +1203,8 @@ Specifies how many subjects you want to process in parallel.
 """
 
 random_state: Optional[int] = 42
-# ``random_state`` : None | int | np.random.RandomState
 """
-To specify the seed or state of the random number generator (RNG).
+You can specify the seed of the random number generator (RNG).
 This setting is passed to the ICA algorithm and to the decoding function,
 ensuring reproducible results. Set to ``None`` to avoid setting the RNG
 to a defined state.
@@ -1122,13 +1213,7 @@ to a defined state.
 shortest_event: int = 1
 """
 Minimum number of samples an event must last. If the
-duration is less than this an exception will be raised.
-"""
-
-allow_maxshield: bool = False
-"""
-To import data that was recorded with Maxshield on before running
-Maxfilter set this to ``True``.
+duration is less than this, an exception will be raised.
 """
 
 log_level: Literal['info', 'error'] = 'info'
@@ -1214,28 +1299,6 @@ if "MNE_BIDS_STUDY_CONFIG" in os.environ:
             exec("%s = custom_cfg.%s" % (val, val))
 
 
-# BIDS_ROOT environment variable takes precedence over any configuration file
-# values.
-if os.getenv('BIDS_ROOT') is not None:
-    bids_root = pathlib.Path(os.getenv('BIDS_ROOT'))
-
-# If we don't have a bids_root until now, raise an exeception as we cannot
-# proceed.
-if not bids_root:
-    msg = ('You need to specify `bids_root` in your configuration, or '
-           'define an environment variable `BIDS_ROOT` pointing to the '
-           'root folder of your BIDS dataset')
-    raise ValueError(msg)
-
-bids_root: pathlib.Path = pathlib.Path(bids_root).expanduser()
-
-# Derivates root
-if deriv_root is None:
-    deriv_root = bids_root / 'derivatives' / PIPELINE_NAME
-else:
-    deriv_root = pathlib.Path(deriv_root).expanduser()
-
-
 ###############################################################################
 # CHECKS
 # ------
@@ -1244,16 +1307,35 @@ if (use_maxwell_filter and
         len(set(ch_types).intersection(('meg', 'grad', 'mag'))) == 0):
     raise ValueError('Cannot use maxwell filter without MEG channels.')
 
-if use_ssp and use_ica:
-    raise ValueError('Cannot use both SSP and ICA.')
-
-if use_ica and ica_algorithm not in ('picard', 'fastica', 'extended_infomax'):
+if (spatial_filter == 'ica' and
+        ica_algorithm not in ('picard', 'fastica', 'extended_infomax')):
     msg = (f"Invalid ICA algorithm requested. Valid values for ica_algorithm "
            f"are: 'picard', 'fastica', and 'extended_infomax', but received "
            f"{ica_algorithm}.")
     raise ValueError(msg)
 
-if use_ica and ica_l_freq < l_freq:
+if (spatial_filter == 'ica' and
+        ica_l_freq is None and
+        l_freq is not None and l_freq < 1):
+    msg = (f'You requested to high-pass filter your data with l_freq={l_freq} '
+           f'Hz and to perform ICA without performing any additional '
+           f'filtering first by setting ica_l_freq=None. However, ICA will '
+           f'not work reliably unless slow drifts have been removed from the '
+           f'data. Please either increase l_freq to 1 Hz or above, or enable '
+           f'additional filtering for ICA by setting ica_l_freq to 1 Hz or '
+           f'higher.')
+    raise ValueError(msg)
+
+if spatial_filter == 'ica' and ica_l_freq < 1:
+    msg = (f'You requested to high-pass filter the data before ICA with '
+           f'ica_l_freq={ica_l_freq} Hz. Please increase this setting to '
+           f'1 Hz or above to ensure reliable ICA function.')
+    raise ValueError(msg)
+
+if (spatial_filter == 'ica' and
+        ica_l_freq is not None and
+        l_freq is not None and
+        ica_l_freq < l_freq):
     msg = (f'You requested a lower high-pass filter cutoff frequency for ICA '
            f'than for your raw data: ica_l_freq = {ica_l_freq} < '
            f'l_freq = {l_freq}. Adjust the cutoffs such that ica_l_freq >= '
@@ -1277,15 +1359,11 @@ elif any([ch_type not in ('meg', 'mag', 'grad') for ch_type in ch_types]):
     raise ValueError(msg)
 
 if 'eeg' in ch_types:
-    if use_ssp:
-        msg = ('You requested SSP for EEG data via use_ssp=True. However, '
-               'this is not presently supported. Please use ICA instead by '
-               'setting use_ssp=False and use_ica=True.')
+    if spatial_filter == 'ssp':
+        msg = ("You requested SSP for EEG data via spatial_filter='ssp'. "
+               "However, this is not presently supported. Please use ICA "
+               "instead by setting spatial_filter='ica'.")
         raise ValueError(msg)
-    if not use_ica:
-        msg = ('You did not request ICA artifact correction for your data. '
-               'To turn it on, set use_ica=True.')
-        logger.info(msg)
 
 if on_error not in ('continue', 'abort', 'debug'):
     msg = (f"on_error must be one of 'continue', 'debug' or 'abort', "
@@ -1320,6 +1398,30 @@ if bem_mri_images not in ('FLASH', 'T1', 'auto'):
 # Helper functions
 # ----------------
 
+def get_bids_root() -> pathlib.Path:
+    # BIDS_ROOT environment variable takes precedence over any configuration file
+    # values.
+    if os.getenv('BIDS_ROOT') is not None:
+        return pathlib.Path(os.getenv('BIDS_ROOT')).expanduser()
+
+    # If we don't have a bids_root until now, raise an exception as we cannot
+    # proceed.
+    if not bids_root:
+        msg = ('You need to specify `bids_root` in your configuration, or '
+               'define an environment variable `BIDS_ROOT` pointing to the '
+               'root folder of your BIDS dataset')
+        raise ValueError(msg)
+
+    return pathlib.Path(bids_root).expanduser()
+
+
+def get_deriv_root() -> pathlib.Path:
+    if deriv_root is None:
+        return get_bids_root() / 'derivatives' / PIPELINE_NAME
+    else:
+        return pathlib.Path(deriv_root).expanduser()
+
+
 def get_sessions():
     sessions_ = copy.deepcopy(sessions)  # Avoid clash with global variable.
 
@@ -1337,7 +1439,7 @@ def get_sessions():
 
 def get_runs() -> list:
     runs_ = copy.deepcopy(runs)  # Avoid clash with global variable.
-    valid_runs = get_entity_vals(bids_root, entity_key='run')
+    valid_runs = get_entity_vals(get_bids_root(), entity_key='run')
 
     env_run = os.environ.get('MNE_BIDS_STUDY_RUN')
     if env_run and env_run not in valid_runs:
@@ -1377,7 +1479,7 @@ def get_subjects() -> List[str]:
 
     env = os.environ
 
-    valid_subjects = get_entity_vals(bids_root, entity_key='subject')
+    valid_subjects = get_entity_vals(get_bids_root(), entity_key='subject')
 
     if env.get('MNE_BIDS_STUDY_SUBJECT'):
         env_subject = env['MNE_BIDS_STUDY_SUBJECT']
@@ -1402,7 +1504,7 @@ def get_task() -> Optional[str]:
     global task
 
     env = os.environ
-    valid_tasks = get_entity_vals(bids_root, entity_key='task')
+    valid_tasks = get_entity_vals(get_bids_root(), entity_key='task')
 
     if env.get('MNE_BIDS_STUDY_TASK'):
         task = env['MNE_BIDS_STUDY_TASK']
@@ -1434,7 +1536,10 @@ def get_datatype() -> Literal['meg', 'eeg']:
                            "the MNE-BIDS-pipeline developers. Thank you.")
 
 
-def get_reject() -> dict:
+def _get_reject(
+    reject: Optional[Dict[str, float]],
+    ch_types: Iterable[Literal['meg', 'mag', 'grad', 'eeg']]
+) -> Union[Dict[str, float], Literal['auto']]:
     if reject is None:
         return dict()
 
@@ -1453,12 +1558,21 @@ def get_reject() -> dict:
             del reject_[ch_type]
         except KeyError:
             pass
+
     return reject_
+
+
+def get_reject() -> Dict[str, float]:
+    return _get_reject(reject=reject, ch_types=ch_types)
+
+
+def get_ica_reject() -> Dict[str, float]:
+    return _get_reject(reject=ica_reject, ch_types=ch_types)
 
 
 def get_fs_subjects_dir():
     if not subjects_dir:
-        return bids_root / 'derivatives' / 'freesurfer' / 'subjects'
+        return get_bids_root() / 'derivatives' / 'freesurfer' / 'subjects'
     else:
         return subjects_dir
 

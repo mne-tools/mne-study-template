@@ -69,14 +69,9 @@ def load_and_concatenate_raws(bids_path):
 
 def filter_for_ica(raw, subject, session):
     """Apply a high-pass filter if needed."""
-    if config.ica_l_freq <= config.l_freq or config.ica_l_freq is None:
-        # Nothing to do here!
-        msg = 'Not applying high-pass filter '
-        if config.ica_l_freq <= config.l_freq:
-            msg += (f'(data is already filtered, '
-                    f'cutoff: {raw.info["highpass"]} Hz).')
-        else:
-            msg = '(no filtering requested).'
+    if config.ica_l_freq is None:
+        msg = (f'Not applying high-pass filter (data is already filtered, '
+               f'cutoff: {raw.info["highpass"]} Hz).')
         logger.info(gen_log_message(message=msg, step=4, subject=subject,
                                     session=session))
     else:
@@ -88,54 +83,21 @@ def filter_for_ica(raw, subject, session):
     return raw
 
 
-def make_epochs_for_ica(raw, subject, session):
-    """Epoch the raw data, and equalize epoch selection with step 3."""
-
-    # First, load the existing epochs. We will extract the selection of kept
-    # epochs.
-    epochs_fname = BIDSPath(subject=subject,
-                            session=session,
-                            task=config.get_task(),
-                            acquisition=config.acq,
-                            recording=config.rec,
-                            space=config.space,
-                            suffix='epo',
-                            extension='.fif',
-                            datatype=config.get_datatype(),
-                            root=config.deriv_root,
-                            check=False)
-    epochs = mne.read_epochs(epochs_fname)
-    selection = epochs.selection
-
-    # Now, create new epochs, and only keep the ones we kept in step 3.
-    # Because some events present in event_id may disappear entirely from the
-    # data, we pass `on_missing='ignore'` to mne.Epochs. Also note that we do
-    # not pass the `reject` parameter here.
-
-    events, event_id = mne.events_from_annotations(raw)
-    events = events[selection]
-    epochs_ica = mne.Epochs(raw, events=events, event_id=event_id,
-                            tmin=epochs.tmin, tmax=epochs.tmax,
-                            baseline=None,
-                            on_missing='ignore',
-                            decim=config.decim, proj=True, preload=True)
-
-    return epochs_ica
-
-
 def fit_ica(epochs, subject, session):
-    if config.ica_algorithm == 'picard':
-        fit_params = dict(fastica_it=5)
-    elif config.ica_algorithm == 'extended_infomax':
-        fit_params = dict(extended=True)
-    elif config.ica_algorithm == 'fastica':
-        fit_params = None
+    algorithm = config.ica_algorithm
+    fit_params = None
 
-    ica = ICA(method=config.ica_algorithm, random_state=config.random_state,
+    if algorithm == 'picard':
+        fit_params = dict(fastica_it=5)
+    elif algorithm == 'extended_infomax':
+        algorithm = 'infomax'
+        fit_params = dict(extended=True)
+
+    ica = ICA(method=algorithm, random_state=config.random_state,
               n_components=config.ica_n_components, fit_params=fit_params,
               max_iter=config.ica_max_iterations)
 
-    ica.fit(epochs, decim=config.ica_decim)
+    ica.fit(epochs, decim=config.ica_decim, reject=config.get_ica_reject())
 
     explained_var = (ica.pca_explained_variance_[:ica.n_components_].sum() /
                      ica.pca_explained_variance_.sum())
@@ -159,6 +121,14 @@ def detect_ecg_artifacts(ica, raw, subject, session, report):
         ecg_epochs = create_ecg_epochs(raw, reject=None,
                                        baseline=(None, -0.2),
                                        tmin=-0.5, tmax=0.5)
+
+        if len(ecg_epochs) == 0:
+            msg = ('No ECG events could be found. Not running ECG artifact '
+                   'detection.')
+            logger.info(gen_log_message(message=msg, step=4, subject=subject,
+                                        session=session))
+            return list()
+
         ecg_evoked = ecg_epochs.average()
         ecg_inds, scores = ica.find_bads_ecg(
             ecg_epochs, method='ctps',
@@ -197,24 +167,32 @@ def detect_ecg_artifacts(ica, raw, subject, session, report):
 
 
 def detect_eog_artifacts(ica, raw, subject, session, report):
-    pick_eog = mne.pick_types(raw.info, meg=False, eeg=False, ecg=False,
-                              eog=True)
     if config.eog_channels:
+        ch_names = config.eog_channels
         assert all([ch_name in raw.ch_names
-                    for ch_name in config.eog_channels])
-        ch_name = ','.join(config.eog_channels)
+                    for ch_name in ch_names])
     else:
-        ch_name = None
+        ch_idx = mne.pick_types(raw.info, meg=False, eog=True)
+        ch_names = [raw.ch_names[i] for i in ch_idx]
+        del ch_idx
 
-    if pick_eog.any() or config.eog_channels:
+    if ch_names:
         msg = 'Performing automated EOG artifact detection …'
         logger.info(gen_log_message(message=msg, step=4, subject=subject,
                                     session=session))
 
         # Do not reject epochs based on amplitude.
-        eog_epochs = create_eog_epochs(raw, ch_name=ch_name, reject=None,
+        eog_epochs = create_eog_epochs(raw, ch_name=ch_names, reject=None,
                                        baseline=(None, -0.2),
                                        tmin=-0.5, tmax=0.5)
+
+        if len(eog_epochs) == 0:
+            msg = ('No EOG events could be found. Not running EOG artifact '
+                   'detection.')
+            logger.info(gen_log_message(message=msg, step=4, subject=subject,
+                                        session=session))
+            return list()
+
         eog_evoked = eog_epochs.average()
         eog_inds, scores = ica.find_bads_eog(
             eog_epochs,
@@ -254,21 +232,22 @@ def detect_eog_artifacts(ica, raw, subject, session, report):
 
 def run_ica(subject, session=None):
     """Run ICA."""
+    task = config.get_task()
     bids_basename = BIDSPath(subject=subject,
                              session=session,
-                             task=config.get_task(),
+                             task=task,
                              acquisition=config.acq,
                              recording=config.rec,
                              space=config.space,
                              datatype=config.get_datatype(),
-                             root=config.deriv_root,
+                             root=config.get_deriv_root(),
                              check=False)
 
     ica_fname = bids_basename.copy().update(suffix='ica', extension='.fif')
     ica_components_fname = bids_basename.copy().update(processing='ica',
                                                        suffix='components',
                                                        extension='.tsv')
-    report_fname = bids_basename.copy().update(processing='ica',
+    report_fname = bids_basename.copy().update(processing='ica+components',
                                                suffix='report',
                                                extension='.html')
 
@@ -289,15 +268,24 @@ def run_ica(subject, session=None):
     # We don't have to worry about edge artifacts due to raw concatenation as
     # we'll be epoching the data in the next step.
     raw = filter_for_ica(raw, subject=subject, session=session)
-    epochs = make_epochs_for_ica(raw, subject=subject, session=session)
+    events, event_id = mne.events_from_annotations(raw)
+    epochs = mne.Epochs(raw, events=events, event_id=event_id,
+                        tmin=config.epochs_tmin, tmax=config.epochs_tmax,
+                        baseline=None, decim=config.decim, proj=True,
+                        preload=True)
 
     # Now actually perform ICA.
     msg = 'Calculating ICA solution.'
     logger.info(gen_log_message(message=msg, step=4, subject=subject,
                                 session=session))
-    report = Report(info_fname=raw,
-                    title='Independent Component Analysis (ICA)',
-                    verbose=False)
+
+    title = f'ICA – sub-{subject}'
+    if session is not None:
+        title += f', ses-{session}'
+    if task is not None:
+        title += f', task-{task}'
+    report = Report(info_fname=raw, title=title, verbose=False)
+
     ica = fit_ica(epochs, subject=subject, session=session)
     ecg_ics = detect_ecg_artifacts(ica=ica, raw=raw, subject=subject,
                                    session=session, report=report)
@@ -370,7 +358,7 @@ def main():
     msg = 'Running Step 4: Compute ICA'
     logger.info(gen_log_message(step=4, message=msg))
 
-    if config.use_ica:
+    if config.spatial_filter == 'ica':
         parallel, run_func, _ = parallel_func(run_ica, n_jobs=config.N_JOBS)
         parallel(run_func(subject, session) for subject, session in
                  itertools.product(config.get_subjects(),

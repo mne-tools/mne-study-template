@@ -30,11 +30,11 @@ def compute_cov_from_epochs(subject, session, tmin, tmax):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
 
     processing = None
-    if config.use_ica or config.use_ssp:
+    if config.spatial_filter is not None:
         processing = 'clean'
 
     epo_fname = bids_path.copy().update(processing=processing, suffix='epo')
@@ -61,23 +61,19 @@ def compute_cov_from_empty_room(subject, session):
                          space=config.space,
                          extension='.fif',
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
 
     raw_er_fname = bids_path.copy().update(processing='filt', task='noise',
                                            suffix='raw')
     cov_fname = bids_path.copy().update(suffix='cov')
 
-    extra_params = dict()
-    if not config.use_maxwell_filter and config.allow_maxshield:
-        extra_params['allow_maxshield'] = config.allow_maxshield
-
     msg = (f'Computing regularized covariance based on empty-room recording. '
            f'Input: {raw_er_fname}, Output: {cov_fname}')
     logger.info(gen_log_message(message=msg, step=11, subject=subject,
                                 session=session))
 
-    raw_er = mne.io.read_raw_fif(raw_er_fname, preload=True, **extra_params)
+    raw_er = mne.io.read_raw_fif(raw_er_fname, preload=True)
     cov = mne.compute_raw_covariance(raw_er, method='shrunk', rank='info')
     cov.save(cov_fname)
 

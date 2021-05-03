@@ -37,11 +37,11 @@ def run_time_frequency(subject, session=None):
                          recording=config.rec,
                          space=config.space,
                          datatype=config.get_datatype(),
-                         root=config.deriv_root,
+                         root=config.get_deriv_root(),
                          check=False)
 
     processing = None
-    if config.use_ica or config.use_ssp:
+    if config.spatial_filter is not None:
         processing = 'clean'
 
     fname_in = bids_path.copy().update(suffix='epo', processing=processing,

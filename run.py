@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
-import fire
 import os
+import sys
 import runpy
 import pathlib
 import logging
-import coloredlogs
 from typing import Union, Optional, Tuple
-try:
+if sys.version_info >= (3, 8):
     from typing import Literal
-except ImportError:  # Python <3.8
+else:
     from typing_extensions import Literal
+
+import fire
+import coloredlogs
 
 logger = logging.getLogger(__name__)
 coloredlogs.install(fmt='%(asctime)s %(levelname)s %(message)s', logger=logger)
@@ -19,24 +21,31 @@ PathLike = Union[str, pathlib.Path]
 
 INIT_SCRIPTS = ('00-init_derivatives_dir.py',)
 
-PREPROCESSING_SCRIPTS = ('01-import_and_maxfilter.py',
-                         '02-frequency_filter.py',
-                         '03-make_epochs.py',
-                         '04a-run_ica.py',
-                         '04b-run_ssp.py',
-                         '05a-apply_ica.py',
-                         '05b-apply_ssp.py')
+PREPROCESSING_SCRIPTS = (
+    '01-import_and_maxfilter.py',
+    '02-frequency_filter.py',
+    '03-make_epochs.py',
+    '04a-run_ica.py',
+    '04b-run_ssp.py',
+    '05a-apply_ica.py',
+    '05b-apply_ssp.py',
+    '06-ptp_reject.py'
+)
 
-SENSOR_SCRIPTS = ('01-make_evoked.py',
-                  '02-sliding_estimator.py',
-                  '03-time_frequency.py',
-                  '04-group_average.py')
+SENSOR_SCRIPTS = (
+    '01-make_evoked.py',
+    '02-sliding_estimator.py',
+    '03-time_frequency.py',
+    '04-group_average.py'
+)
 
-SOURCE_SCRIPTS = ('01-make_bem_surfaces.py',
-                  '02-make_forward.py',
-                  '03-make_cov.py',
-                  '04-make_inverse.py',
-                  '05-group_average.py')
+SOURCE_SCRIPTS = (
+    '01-make_bem_surfaces.py',
+    '02-make_forward.py',
+    '03-make_cov.py',
+    '04-make_inverse.py',
+    '05-group_average.py'
+)
 
 REPORT_SCRIPTS = ('01-make_reports.py',)
 
@@ -156,7 +165,10 @@ def process(config: PathLike,
     script_paths = []
     for stage, step in zip(processing_stages, processing_steps):
         if stage not in SCRIPT_PATHS.keys():
-            raise ValueError(f'Invalid step requested: {stage}')
+            raise ValueError(
+                f"Invalid step requested: '{stage}'. "
+                f'It should be one of {list(SCRIPT_PATHS.keys())}.'
+            )
 
         if step is None:
             # User specified `sensors`, `source`, or similar

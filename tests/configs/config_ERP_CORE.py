@@ -1,5 +1,27 @@
 """
-ERP CORE.
+ERP CORE
+
+This example demonstrate how to process 5 participants from the
+[ERP CORE](https://erpinfo.org/erp-core) dataset. It shows how to obtain 7 ERP
+components from a total of 6 experimental tasks:
+
+- N170 (face perception)
+- MMN (passive auditory oddball)
+- N2pc (visual search)
+- N400 (word pair judgment)
+- P3b (active visual oddball)
+- LRP and ERN (flankers task)
+
+## Dataset information
+
+- **Authors:** Emily S. Kappenman, Jaclyn L. Farrens, Wendy Zhang,
+                       Andrew X. Stewart, and Steven J. Luck
+- **License:** CC-BY-4.0
+- **URL:** [https://erpinfo.org/erp-core](https://erpinfo.org/erp-core)
+- **Citation:** Kappenman, E., Farrens, J., Zhang, W., Stewart, A. X.,
+                & Luck, S. J. (2021). ERP CORE: An open resource for human
+                event-related potential research. *NeuroImage* 225: 117465.
+                [https://doi.org/10.1016/j.neuroimage.2020.117465](https://doi.org/10.1016/j.neuroimage.2020.117465)
 """
 import os
 
@@ -21,14 +43,17 @@ eeg_template_montage = 'standard_1005'
 eeg_bipolar_channels = {'HEOG': ('HEOG_left', 'HEOG_right'),
                         'VEOG': ('VEOG_lower', 'FP2')}
 drop_channels = ['HEOG_left', 'HEOG_right', 'VEOG_lower']
+eog_channels = ['HEOG', 'VEOG']
 
 l_freq = 0.1
 h_freq = None
 
 decode = True
 
-use_ssp = False
-use_ica = True
+ica_reject = dict(eeg=350e-6, eog=500e-6)
+reject = dict(eeg=150e-6)
+
+spatial_filter = 'ica'
 ica_max_iterations = 1000
 ica_eog_threshold = 2
 

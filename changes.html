@@ -1110,6 +1110,9 @@
   shielding (MaxShield) can be imported. Later stages of the Pipeline will fail
   if Maxwell filtering of such data is disabled via <code>use_maxwell_filter=False</code>.
   (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/318">#318</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
+<li>The overlay plots that show the effects of ICA cleaning are now based on the
+  baseline-corrected data to make it easier to spot the differences.
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/320">#320</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
 </ul>
 <h3 id="bug-fixes">Bug fixes<a class="headerlink" href="#bug-fixes" title="Permanent link">&para;</a></h3>
 <ul>
@@ -1125,6 +1128,17 @@
   (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/311">#311</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
 <li>Added instructions on how to handle <code>FileNotFoundError</code> when loading the BEM
   model in the source steps (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/304">#304</a>  by <a href="https://github.com/MerlinDumeur">Merlin Dumeur</a>)</li>
+<li>When using <a href="settings/preprocessing/autobads.html#config.find_noisy_channels_meg"><code>find_noisy_channels_meg</code></a> or
+  <a href="settings/preprocessing/autobads.html#config.find_flat_channels_meg"><code>find_flat_channels_meg</code></a>, we now pass <a href="settings/preprocessing/maxfilter.html#config.mf_head_origin"><code>mf_head_origin</code></a> to the respective bad channel
+  detection algorithm to achieve better performance
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/319">#319</a> by <a href="https://github.com/agramfort">Alex Gramfort</a>)</li>
+<li>Baseline was not applied to epochs if neither ICA nor SSP was used
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/319">#319</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
+<li>Ensure we always use the cleaned epochs for constructing evoked data
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/319">#319</a> by <a href="https://github.com/agramfort">Alex Gramfort</a>)</li>
+<li>The summary report didn't use the cleaned epochs for showing the effects of
+  ICA.
+  (<a href="https://github.com/mne-tools/mne-bids-pipeline/pull/320">#320</a> by <a href="https://github.com/hoechenberger">Richard Höchenberger</a>)</li>
 </ul>
                 
                   

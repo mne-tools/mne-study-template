@@ -798,6 +798,13 @@ rejection thresholds for each channel type, i.e. `autoreject` will generate
 a dictionary with (hopefully!) optimal thresholds for each channel type. Note
 that using `autoreject` can be a time-consuming process.
 
+Note: Note
+      `autoreject` basically offers to modes of operation: "global" and
+      "local". In "global" mode, it will try to estimate one rejection
+      threshold **per channel type.** In "local" mode, it will generate
+      thresholds **for each individual channel.** Currently, the BIDS Pipeline
+      only supports the "global" mode.
+    
 ???+ example "Example"
     ```python
     ica_reject = 'auto'  # use autoreject to determine thresholds
@@ -894,23 +901,36 @@ false-alarm rate increases dramatically.
 # Rejection based on peak-to-peak amplitude
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-reject: Optional[Dict[str, float]] = None
+reject: Optional[Union[Dict[str, float], Literal['auto']]] = None
 """
 Peak-to-peak amplitude limits to mark epochs as bad. This allows you to remove
 epochs with strong transient artifacts.
 
 Note: Note
       The rejection is performed **after** SSP or ICA, if any of those methods
-      is used. To reject epochs before fitting ICA, see the
+      is used. To reject epochs **before** fitting ICA, see the
       [`ica_reject`][config.ica_reject] setting.
 
-Pass ``None`` to avoid automated epoch rejection based on amplitude.
+If `None` (default), do not apply automated rejection. If a dictionary,
+manually specify rejection thresholds (see examples).  If `'auto'`, use
+[`autoreject`](https://autoreject.github.io) to find suitable "global"
+rejection thresholds for each channel type, i.e. `autoreject` will generate
+a dictionary with (hopefully!) optimal thresholds for each channel type. Note
+that using `autoreject` can be a time-consuming process.
+
+Note: Note
+      `autoreject` basically offers to modes of operation: "global" and
+      "local". In "global" mode, it will try to estimate one rejection
+      threshold **per channel type.** In "local" mode, it will generate
+      thresholds **for each individual channel.** Currently, the BIDS Pipeline
+      only supports the "global" mode.
 
 ???+ example "Example"
     ```python
+    ica_reject = 'auto'  # use autoreject to determine thresholds
     reject = {'grad': 4000e-13, 'mag': 4e-12, 'eog': 150e-6}
     reject = {'eeg': 100e-6, 'eog': 250e-6}
-    reject = None
+    reject = None  # no rejection based on PTP amplitude
     ```
 """
 

@@ -13,8 +13,8 @@ import logging
 
 import mne
 from mne.parallel import parallel_func
-
 from mne_bids import BIDSPath
+import autoreject
 
 import config
 from config import gen_log_message, on_error, failsafe_run
@@ -45,8 +45,12 @@ def drop_ptp(subject, session=None):
                                 session=session))
 
     # Get rejection parameters and drop bad epochs
-    reject = config.get_reject()
     epochs = mne.read_epochs(fname_in, preload=True)
+
+    reject = config.get_reject()
+    if reject == 'auto':
+        reject = autoreject.get_rejection_threshold(epochs)
+
     n_epochs_before_reject = len(epochs)
     epochs.reject_tmin = config.reject_tmin
     epochs.reject_tmax = config.reject_tmax

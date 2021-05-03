@@ -51,7 +51,7 @@ h_freq = None
 decode = True
 
 ica_reject = 'auto'
-reject = dict(eeg=150e-6)
+reject = 'auto'
 
 spatial_filter = 'ica'
 ica_max_iterations = 1000

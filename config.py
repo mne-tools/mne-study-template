@@ -779,7 +779,7 @@ order to remove the artifacts. The ICA procedure can be configured in various
 ways using the configuration options you can find below.
 """
 
-ica_reject: Optional[Dict[str, float]] = None
+ica_reject: Optional[Union[Dict[str, float], Literal['auto']]] = None
 """
 Peak-to-peak amplitude limits to exclude epochs from ICA fitting.
 
@@ -791,11 +791,26 @@ your data, and remove them. For this to work properly, it is recommended
 to **not** specify rejection thresholds for EOG and ECG channels here –
 otherwise, ICA won't be able to "see" these artifacts.
 
+If `None` (default), do not apply automated rejection. If a dictionary,
+manually specify rejection thresholds (see examples).  If `'auto'`, use
+[`autoreject`](https://autoreject.github.io) to find suitable "global"
+rejection thresholds for each channel type, i.e. `autoreject` will generate
+a dictionary with (hopefully!) optimal thresholds for each channel type. Note
+that using `autoreject` can be a time-consuming process.
+
+Note: Note
+      `autoreject` basically offers to modes of operation: "global" and
+      "local". In "global" mode, it will try to estimate one rejection
+      threshold **per channel type.** In "local" mode, it will generate
+      thresholds **for each individual channel.** Currently, the BIDS Pipeline
+      only supports the "global" mode.
+
 ???+ example "Example"
     ```python
+    ica_reject = 'auto'  # use autoreject to determine thresholds
     ica_reject = {'grad': 10e-10, 'mag': 20e-12, 'eeg': 400e-6}
     ica_reject = {'grad': 15e-10}
-    ica_reject = None
+    ica_reject = None  # no rejection
     ```
 """
 
@@ -886,23 +901,36 @@ false-alarm rate increases dramatically.
 # Rejection based on peak-to-peak amplitude
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-reject: Optional[Dict[str, float]] = None
+reject: Optional[Union[Dict[str, float], Literal['auto']]] = None
 """
 Peak-to-peak amplitude limits to mark epochs as bad. This allows you to remove
 epochs with strong transient artifacts.
 
 Note: Note
       The rejection is performed **after** SSP or ICA, if any of those methods
-      is used. To reject epochs before fitting ICA, see the
+      is used. To reject epochs **before** fitting ICA, see the
       [`ica_reject`][config.ica_reject] setting.
 
-Pass ``None`` to avoid automated epoch rejection based on amplitude.
+If `None` (default), do not apply automated rejection. If a dictionary,
+manually specify rejection thresholds (see examples).  If `'auto'`, use
+[`autoreject`](https://autoreject.github.io) to find suitable "global"
+rejection thresholds for each channel type, i.e. `autoreject` will generate
+a dictionary with (hopefully!) optimal thresholds for each channel type. Note
+that using `autoreject` can be a time-consuming process.
+
+Note: Note
+      `autoreject` basically offers to modes of operation: "global" and
+      "local". In "global" mode, it will try to estimate one rejection
+      threshold **per channel type.** In "local" mode, it will generate
+      thresholds **for each individual channel.** Currently, the BIDS Pipeline
+      only supports the "global" mode.
 
 ???+ example "Example"
     ```python
+    ica_reject = 'auto'  # use autoreject to determine thresholds
     reject = {'grad': 4000e-13, 'mag': 4e-12, 'eog': 150e-6}
     reject = {'eeg': 100e-6, 'eog': 250e-6}
-    reject = None
+    reject = None  # no rejection based on PTP amplitude
     ```
 """
 
@@ -1522,9 +1550,11 @@ def get_datatype() -> Literal['meg', 'eeg']:
 def _get_reject(
     reject: Optional[Dict[str, float]],
     ch_types: Iterable[Literal['meg', 'mag', 'grad', 'eeg']]
-) -> Dict[str, float]:
+) -> Union[Dict[str, float], Literal['auto']]:
     if reject is None:
         return dict()
+    elif reject == 'auto':
+        return reject
 
     reject = reject.copy()
 
@@ -1542,11 +1572,11 @@ def _get_reject(
     return reject
 
 
-def get_reject() -> Dict[str, float]:
+def get_reject() -> Union[Dict[str, float], Literal['auto']]:
     return _get_reject(reject=reject, ch_types=ch_types)
 
 
-def get_ica_reject() -> Dict[str, float]:
+def get_ica_reject() -> Union[Dict[str, float], Literal['auto']]:
     return _get_reject(reject=ica_reject, ch_types=ch_types)
 
 

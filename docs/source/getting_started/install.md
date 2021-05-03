@@ -11,17 +11,19 @@ required to run the pipeline.
 ??? example "Install for Python 3.8 and newer"
     Run in your terminal:
     ```shell
-    pip install mne-bids coloredlogs tqdm pandas scikit-learn json_tricks fire
+    pip install mne-bids autoreject coloredlogs tqdm pandas scikit-learn json_tricks fire
     ```
 
 ??? example "Install for older Python versions"
     Run in your terminal:
     ```shell
-    pip install mne-bids coloredlogs tqdm pandas json_tricks scikit-learn fire typing_extensions
+    pip install mne-bids autoreject coloredlogs tqdm pandas json_tricks scikit-learn fire typing_extensions
     ```
 
 ??? info "Detailed list of dependencies"
     - `mne-bids` to operate on BIDS data
+    - `autoreject` to automatically detect problematic epochs based on
+      peak-to-peak (PTP) amplitudes
     - `coloredlogs` for nicer logging output
     - `tqdm` for progress bars
     - `pandas` for table creation

@@ -21,8 +21,8 @@ import mne
 from mne.report import Report
 from mne.preprocessing import ICA, create_ecg_epochs, create_eog_epochs
 from mne.parallel import parallel_func
-
 from mne_bids import BIDSPath
+import autoreject
 
 import config
 from config import gen_log_message, on_error, failsafe_run
@@ -97,6 +97,9 @@ def fit_ica(epochs, subject, session):
               n_components=config.ica_n_components, fit_params=fit_params,
               max_iter=config.ica_max_iterations)
 
+    reject = config.get_ica_reject()
+    if reject == 'auto':
+        reject = autoreject.get_rejection_threshold(epochs)
     ica.fit(epochs, decim=config.ica_decim, reject=config.get_ica_reject())
 
     explained_var = (ica.pca_explained_variance_[:ica.n_components_].sum() /

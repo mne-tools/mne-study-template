@@ -804,7 +804,7 @@ Note: Note
       threshold **per channel type.** In "local" mode, it will generate
       thresholds **for each individual channel.** Currently, the BIDS Pipeline
       only supports the "global" mode.
-    
+
 ???+ example "Example"
     ```python
     ica_reject = 'auto'  # use autoreject to determine thresholds

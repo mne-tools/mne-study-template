@@ -101,7 +101,7 @@ def run_ssp(subject, session=None):
     else:
         ch_names = None
 
-    eog_projs, _ = compute_proj_eog(raw, ch_name=ch_name,
+    eog_projs, _ = compute_proj_eog(raw, ch_name=ch_names,
                                     n_grad=1, n_mag=1, n_eeg=1,
                                     average=True, reject=reject_eog)
     if not eog_projs:

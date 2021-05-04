@@ -10,14 +10,42 @@ import itertools
 import logging
 
 import mne
+from mne.preprocessing import create_eog_epochs, create_ecg_epochs
 from mne.preprocessing import compute_proj_ecg, compute_proj_eog
 from mne.parallel import parallel_func
 from mne_bids import BIDSPath
+from autoreject import get_rejection_threshold
 
 import config
 from config import gen_log_message, on_error, failsafe_run
 
 logger = logging.getLogger('mne-bids-pipeline')
+
+
+def _get_global_reject_ssp(raw):
+    if 'eog' in raw:
+        eog_epochs = mne.preprocessing.create_eog_epochs(raw)
+    else:
+        eog_epochs = []
+    if len(eog_epochs) >= 5:  # Abitrary choice
+        reject_eog = get_rejection_threshold(eog_epochs, decim=8)
+        del reject_eog['eog']  # we don't want to reject eog based on eog
+    else:
+        reject_eog = None
+
+    ecg_epochs = mne.preprocessing.create_ecg_epochs(raw)
+    # we will always have an ECG as long as there are magnetometers
+    if len(ecg_epochs) >= 5:
+        reject_ecg = get_rejection_threshold(ecg_epochs, decim=8)
+        # here we want the eog
+    else:
+        reject_ecg = None
+
+    if reject_eog is None and reject_ecg is not None:
+        reject_eog = dict(reject_ecg)
+        if 'eog' in reject_eog:
+            del reject_eog['eog']
+    return reject_eog, reject_ecg
 
 
 @failsafe_run(on_error=on_error)
@@ -52,11 +80,17 @@ def run_ssp(subject, session=None):
 
     raw = mne.io.read_raw_fif(raw_fname_in)
     # XXX : n_xxx should be options in config
+    reject_eog, reject_ecg = _get_global_reject_ssp(raw)
+
     msg = 'Computing SSPs for ECG'
     logger.debug(gen_log_message(message=msg, step=4, subject=subject,
                                  session=session))
-    ecg_projs, _ = compute_proj_ecg(raw, n_grad=1, n_mag=1, n_eeg=0,
-                                    average=True)
+    ecg_projs, _ = compute_proj_ecg(raw,
+                                    n_grad=config.n_proj_ecg_grad,
+                                    n_mag=config.n_proj_ecg_mag,
+                                    n_eeg=config.n_proj_ecg_eeg,
+                                    average=True,
+                                    reject=reject_ecg)
 
     if not ecg_projs:
         msg = 'No ECG events could be found. No ECG projectors computed.'
@@ -73,10 +107,12 @@ def run_ssp(subject, session=None):
     else:
         ch_names = None
 
-    eog_projs, _ = compute_proj_eog(raw, ch_name=ch_names,
-                                    n_grad=1, n_mag=1, n_eeg=1,
-                                    average=True)
-
+    eog_projs, _ = compute_proj_eog(raw,
+                                    ch_name=ch_names,
+                                    n_grad=config.n_proj_eog_grad,
+                                    n_mag=config.n_proj_eog_mag,
+                                    n_eeg=config.n_proj_eog_eeg,
+                                    average=True, reject=reject_eog)
     if not eog_projs:
         msg = 'No EOG events could be found. No EOG projectors computed.'
         logger.info(gen_log_message(message=msg, step=4, subject=subject,
